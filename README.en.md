@@ -6,7 +6,7 @@ A **signal/slot-centric code Wiki generator** for Qt Widgets: compile a C++/Qt r
 
 > Extracted from a production codebase (91 `Q_OBJECT` classes, 703 `connect` edges) and generalized.
 > Pure Python 3 standard library — zero third-party deps. Target repo only needs to be a git repo.
-> **Agents: read [`AGENTS.md`](AGENTS.md) first.**
+> **Agents: read [`AGENTS.md`](AGENTS.md) first.** Repo blurb: [`ABOUT.md`](ABOUT.md).
 
 ## Architecture (code is the single source of truth)
 
