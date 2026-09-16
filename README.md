@@ -8,7 +8,7 @@ Obsidian 可读的代码图谱 vault（类页 / 模块接线页 / 分层交互 H
 
 > 从生产项目（91 Q_OBJECT 类 / 703 connect 边）验证后抽出的通用工具链。
 > 纯 Python 3 标准库，零第三方依赖；目标仓库只要是 git 仓库即可。
-> **Agent 接入请先读 [`AGENTS.md`](AGENTS.md)。**
+> **Agent 接入请先读 [`AGENTS.md`](AGENTS.md)。** 仓库简介见 [`ABOUT.md`](ABOUT.md)。
 
 ## 架构（三层，代码是唯一事实源）
 
