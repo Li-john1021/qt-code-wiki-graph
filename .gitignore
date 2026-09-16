@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.idea/
+.vscode/
+.DS_Store
+
+# 编译产物 / 内部交接（勿上传）
+code_wiki/
+examples/**/code_wiki/
+Temp/
+*.user
+HANDOFF*
+_clean_*.py

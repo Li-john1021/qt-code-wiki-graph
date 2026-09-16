@@ -1,0 +1,5 @@
+{
+  "UI 层": ["MainWindow", "SettingsDialog"],
+  "业务": ["DataProcessor"],
+  "Worker 层": ["WorkerThread"]
+}

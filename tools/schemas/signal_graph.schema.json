@@ -1,0 +1,179 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "signal_graph.schema.json",
+  "title": "signal_graph 图谱 SSOT（Schema v1.0）",
+  "description": "tools/scan_signal_graph.py 的确定性输出契约；渲染器 render_wiki.py 与 agent 查询共同消费。sort_keys、无时间戳、幂等。",
+  "type": "object",
+  "required": ["schema_version", "compile_meta", "nodes", "edges", "class_details", "assertions", "scan_stats"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "compile_meta": {
+      "type": "object",
+      "required": ["compiled_at_commit", "prev_compiled_at_commit"],
+      "properties": {
+        "compiled_at_commit": {"type": "string", "description": "本次编译时的 git HEAD；git 不可用为空串"},
+        "prev_compiled_at_commit": {"type": "string", "description": "上一次编译锚点，供 update 增量圈范围"}
+      }
+    },
+    "nodes": {
+      "type": "object",
+      "required": ["classes", "ui_widgets"],
+      "properties": {
+        "classes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "header", "line", "qobject", "bases", "module", "signalCount", "slotCount"],
+            "properties": {
+              "name": {"type": "string"},
+              "header": {"type": "string", "description": "相对仓库根的头文件路径"},
+              "line": {"type": "integer"},
+              "qobject": {"type": "boolean"},
+              "bases": {"type": "string"},
+              "module": {"type": "string", "description": "模块归属（modules.json；未命中为「未分组」）"},
+              "signalCount": {"type": "integer"},
+              "slotCount": {"type": "integer"}
+            }
+          }
+        },
+        "ui_widgets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["objectName", "widgetClass", "uiFile"],
+            "properties": {
+              "objectName": {"type": "string"},
+              "widgetClass": {"type": "string"},
+              "uiFile": {"type": "string"}
+            }
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "object",
+      "required": ["signal_connection", "designer_connect"],
+      "properties": {
+        "signal_connection": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["file", "line", "syntax", "senderKind", "sender", "signal", "receiverKind", "receiver"],
+            "properties": {
+              "file": {"type": "string"},
+              "line": {"type": "integer"},
+              "syntax": {"enum": ["PMF4", "PMF3", "LAMBDA", "MACRO", "FUNCTOR"]},
+              "connType": {"type": ["string", "null"], "description": "Qt::ConnectionType 尾参（Direct/Queued/…），无则 null"},
+              "senderExpr": {"type": "string", "description": "provenance：sender 原始表达式"},
+              "senderKind": {"enum": ["class", "ui_widget", "this", "unknown"]},
+              "sender": {"type": "string"},
+              "signal": {"type": "string"},
+              "signalOwner": {"type": ["string", "null"]},
+              "receiverExpr": {"type": "string"},
+              "receiverKind": {"enum": ["class", "ui_widget", "this", "unknown"]},
+              "receiver": {"type": "string", "description": "lambda receiver 归属所在类"},
+              "slot": {"type": ["string", "null"]},
+              "slotOwner": {"type": ["string", "null"]}
+            }
+          }
+        },
+        "designer_connect": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["uiFile", "sender", "signal", "receiver", "slot"],
+            "properties": {
+              "uiFile": {"type": "string"},
+              "sender": {"type": ["string", "null"]},
+              "signal": {"type": ["string", "null"]},
+              "receiver": {"type": ["string", "null"]},
+              "slot": {"type": ["string", "null"]}
+            }
+          }
+        }
+      }
+    },
+    "free_functions": {
+      "type": "array",
+      "description": "类外自由/static 函数声明（注释补齐清单用）",
+      "items": {
+        "type": "object",
+        "required": ["name", "file", "line"],
+        "properties": {
+          "name": {"type": "string"},
+          "ret": {"type": "string"},
+          "params": {"type": "string"},
+          "file": {"type": "string"},
+          "line": {"type": "integer"},
+          "comment": {"type": ["string", "null"]},
+          "brief": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "class_details": {
+      "type": "object",
+      "description": "每类完整结构：signals/slots/functions/members（含 line 锚点与 comment，缺注释为 null）",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["signals", "slots", "functions", "members"],
+        "properties": {
+          "signals": {"$ref": "#/definitions/funcDecl"},
+          "slots": {"$ref": "#/definitions/funcDecl"},
+          "functions": {"$ref": "#/definitions/funcDecl"},
+          "members": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "type", "line"],
+              "properties": {
+                "name": {"type": "string"},
+                "type": {"type": "string"},
+                "line": {"type": "integer"},
+                "access": {"type": "string"},
+                "comment": {"type": ["string", "null"]}
+              }
+            }
+          }
+        }
+      }
+    },
+    "assertions": {
+      "type": "object",
+      "required": ["on_slot_declarations", "on_string_references", "assert_no_on_enabled"],
+      "properties": {
+        "on_slot_declarations": {"type": "integer", "description": "on_ 槽声明计数；assert_no_on 开启时须为 0"},
+        "on_string_references": {"type": "integer", "description": "on_ 字符串引用计数"},
+        "assert_no_on_enabled": {"type": "boolean", "description": "本次编译是否启用 on_ 零断言"}
+      }
+    },
+    "scan_stats": {
+      "type": "object",
+      "required": ["cpp_files", "header_files", "connect_edges", "sender_resolved", "receiver_resolved", "unresolved"],
+      "properties": {
+        "cpp_files": {"type": "integer"},
+        "header_files": {"type": "integer"},
+        "connect_edges": {"type": "integer"},
+        "sender_resolved": {"type": "integer"},
+        "receiver_resolved": {"type": "integer"},
+        "unresolved": {"type": "integer"}
+      }
+    }
+  },
+  "definitions": {
+    "funcDecl": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "line"],
+        "properties": {
+          "name": {"type": "string"},
+          "ret": {"type": "string"},
+          "params": {"type": "string"},
+          "line": {"type": "integer"},
+          "access": {"type": "string"},
+          "comment": {"type": ["string", "null"], "description": "声明上方注释；null 进缺注释清单"}
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "out_root": "code_wiki",
+  "unresolved_path": "code_wiki/scan_unresolved.txt",
+  "exclude_dirs": [
+    "thirdparty",
+    "3rdparty",
+    "vendor",
+    "external",
+    "libs/external"
+  ],
+  "free_function_exclude_prefixes": [],
+  "file_class_overrides": {},
+  "modules_file": "modules.json",
+  "assert_no_on": false,
+  "pro": null
+}

@@ -1,0 +1,8 @@
+{
+  "out_root": "code_wiki",
+  "exclude_dirs": [],
+  "free_function_exclude_prefixes": [],
+  "file_class_overrides": {},
+  "modules_file": "modules.json",
+  "assert_no_on": false
+}
