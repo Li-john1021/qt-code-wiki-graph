@@ -1,5 +1,7 @@
 # qt-code-wiki-graph
 
+**中文** | [English](README.en.md)
+
 以 **Qt 信号槽连接为核心** 的代码 Wiki 生成器：把一个 C++/Qt Widgets 仓库编译成
 Obsidian 可读的代码图谱 vault（类页 / 模块接线页 / 分层交互 HTML 图），并配套
 治理规则（derived 防手改 / narrative 人写 / lint 校验 / commit 锚点增量维护）。
