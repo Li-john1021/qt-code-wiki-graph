@@ -11,20 +11,49 @@ import json
 import os
 from pathlib import Path
 
-# 通用排除目录（Qt/C++ 工程常见构建与工具产物；项目特有目录进配置）
+# 通用排除目录（Qt/C++ 工程常见构建、文档与工具产物；项目特有目录进配置）
+# 递归扫描后 tests/examples/docs/scripts 等默认不入图谱；产品代码若在这些目录，
+# 在 qt_code_wiki.json 用 allow_dirs 收回（见 ProjectConfig）。
 DEFAULT_EXCLUDE_DIRS = {
     'build', 'build-*', 'cmake-build-*', 'Temp', 'tmp', 'debug', 'release',
     'debug_build', 'release_build', 'generated', 'out', 'dist',
     '.git', '.svn', '.hg', '.vs', '.vscode', '.idea', '.clangd',
     '.codegraph', '.agent', '.claude', '.pi', '.qoder',
     '__pycache__', 'node_modules',
+    # 非产品树（REVIEW P1-a）
+    'tests', 'test', 'testing', 'examples', 'example', 'docs', 'doc',
+    'scripts', 'script', 'thirdparty', 'third_party', '3rdparty',
+    'external', 'vendor', 'libs',
 }
+
+# Windows 设备保留名（REVIEW P0：根下遗留 nul 等会使 os.path.relpath 崩溃）
+WINDOWS_RESERVED_STEMS = frozenset(
+    ['con', 'prn', 'aux', 'nul']
+    + [f'com{i}' for i in range(1, 10)]
+    + [f'lpt{i}' for i in range(1, 10)]
+)
 
 # uic/moc/qrc 生成文件名前缀（必须排除，否则 Ui::X 会覆盖真类）
 GENERATED_FILE_PREFIXES = ('ui_', 'moc_', 'qrc_', 'moc_predefs')
 
 DEFAULT_CONFIG_NAME = 'qt_code_wiki.json'
 DEFAULT_MODULES_NAME = 'modules.json'
+
+
+def is_windows_reserved(name):
+    """文件/目录名是否为 Windows 设备保留名（nul、con、aux、COM1…）。"""
+    if not name:
+        return False
+    stem = name.split('.')[0].lower()
+    return stem in WINDOWS_RESERVED_STEMS
+
+
+def safe_relpath(path, start):
+    """relpath 包一层：保留名/非法路径返回 None，不抛。"""
+    try:
+        return os.path.relpath(path, start).replace('/', os.sep)
+    except (ValueError, OSError):
+        return None
 
 
 def default_tools_dir():
@@ -140,6 +169,9 @@ class ProjectConfig:
         # CLI 若显式给了集合则再并集（不替换通用项）
         if exclude_dirs:
             excludes |= set(exclude_dirs)
+        # 产品代码若在默认排除树内（如 examples/src），用 allow_dirs 收回
+        for d in (cfg.get('allow_dirs') or []):
+            excludes.discard(d)
         self.exclude_dirs = excludes
 
         self.free_function_exclude_prefixes = list(

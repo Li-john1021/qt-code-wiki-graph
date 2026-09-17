@@ -30,7 +30,7 @@ signal_graph.json ──② tools/render_wiki.py──▶ code_wiki/
 | 决策 | 内容 |
 |------|------|
 | derived/narrative 分离 | 机器生成区带 `<!-- DERIVED:start hash=xxx -->` 标记，lint 重算 hash 抓手改；人/LLM 只写 narrative 区，重渲染增量保留 |
-| 确定性编译 | 同代码同 HEAD 两次编译逐字节一致（sort_keys、无时间戳），diff 即真实变化 |
+| 确定性编译 | **收敛态幂等**：`prev` 锚点已与上次一致后，同代码同 HEAD 两次编译逐字节一致（首跑 `prev` 为空串，与次跑差一个锚点字段属预期） |
 | 编译基线 = git tracked | 默认只编译已提交文件，并行在途文件自动隔离（`--include-untracked` 可覆盖） |
 | commit 锚点增量 | 每次编译把 HEAD 写入 `compile_meta.compiled_at_commit`，上次锚点保留为 `prev`；update 时 `git diff <prev锚点>` 机械圈受影响类页 |
 | 粒度 | 图谱函数级节点、页面类级一页；模块图只画项目类↔项目类（控件剔除） |
@@ -109,6 +109,7 @@ python tools/verify_moc.py --repo /path/to/qt-project --build /path/to/build
 - 差集非空 → 打印 `moc_only_*` / `scan_only_*` 并退出码 1
 - 比对键为 **方法名**（跨 Qt 版本签名格式不稳）；重载同名视为一条
 - 不替代 `slots:` 声明扫描：invokeMethod / 直接调用的槽不会出现在 connect 里，仍以声明为准
+- 与源码扫描互补：类内 inline / 多行声明漏收时，moc 对账常能机械抓到（见「已知限制」）
 
 ## 目录
 
@@ -130,7 +131,9 @@ examples/demo-qt-app/           端到端 demo（4 个 Q_OBJECT 类 + .ui + PMF/
 ## 适用边界
 
 - ✅ C++ / Qt Widgets 工程（.pro 工程、PMF 语法 connect、uic 控件树）
-- ✅ 源码可分布在子目录（递归扫描，配置排除 thirdparty/build 等）
+- ✅ 源码可分布在子目录（递归扫描）
+- 默认排除：`build`/`Temp`/`thirdparty`/`vendor`/`tests`/`test`/`examples`/`docs`/`scripts` 等，以及 Windows 保留名（`nul`/`con`/`aux`…）
+- 产品代码若在默认排除树内，用配置 `allow_dirs: ["examples"]` 收回；额外排除用 `exclude_dirs` 或 `--exclude-dir`
 - ❌ 非 Qt 项目、QML 主导项目（未覆盖）
 - 注释语义列的价值依赖目标仓库有 .h 功能注释；没有的话先跑 missing-comments 清单驱动补齐
 

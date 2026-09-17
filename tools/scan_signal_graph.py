@@ -44,6 +44,7 @@ from gen_ui_manifest import parse_pro_forms, parse_ui_file  # noqa: E402
 from wiki_config import (  # noqa: E402
     ProjectConfig, add_common_args, config_from_args,
     default_repo_root, GENERATED_FILE_PREFIXES,
+    is_windows_reserved, safe_relpath,
 )
 from verify_moc import verify_against_graph, print_report  # noqa: E402
 
@@ -113,25 +114,38 @@ def _is_excluded_dir(name, exclude_dirs):
 
 
 def list_root_sources(include_untracked=False):
-    """递归收集 cpp/h（排除 EXCLUDE_DIRS 与 uic/moc 生成文件）。"""
+    """递归收集 cpp/h（排除 EXCLUDE_DIRS、Windows 保留名、uic/moc 生成文件）。"""
     cpps, heads = [], []
     tracked = None if include_untracked else git_tracked_sources()
+    skipped_bad = 0
     for root, dirs, files in os.walk(REPO):
-        dirs[:] = sorted(
-            d for d in dirs
-            if not _is_excluded_dir(d, EXCLUDE_DIRS) and not d.startswith('.')
-        )
+        # 剪掉排除目录 + Windows 设备保留名（nul/con/aux…，REVIEW P0）
+        kept_dirs = []
+        for d in sorted(dirs):
+            if is_windows_reserved(d) or _is_excluded_dir(d, EXCLUDE_DIRS) or d.startswith('.'):
+                skipped_bad += 1
+                continue
+            kept_dirs.append(d)
+        dirs[:] = kept_dirs
         for name in sorted(files):
             if name.startswith(GENERATED_FILE_PREFIXES):
                 continue    # uic/moc 生成文件，其中 Ui::X 类会覆盖真类
+            if is_windows_reserved(name):
+                skipped_bad += 1
+                continue
             p = os.path.join(root, name)
-            rel = os.path.relpath(p, REPO).replace('/', os.sep)
+            rel = safe_relpath(p, REPO)
+            if rel is None:
+                skipped_bad += 1
+                continue
             if tracked is not None and rel not in tracked:
                 continue    # 未跟踪的在途文件不入图谱
             if name.endswith('.cpp'):
                 cpps.append(p)
             elif name.endswith('.h') or name.endswith('.hpp'):
                 heads.append(p)
+    if skipped_bad:
+        print(f'[scan] skipped unsafe/excluded path entries: {skipped_bad}')
     return cpps, heads
 
 

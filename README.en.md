@@ -28,7 +28,7 @@ Key design decisions:
 | Decision | What it means |
 |----------|----------------|
 | derived / narrative split | Machine blocks wrapped in `<!-- DERIVED:start hash=xxx -->`; lint recomputes hashes to catch hand-edits; humans/LLMs only write narrative |
-| Deterministic compile | Two runs on the same code + HEAD produce byte-identical output |
+| Deterministic compile | **Converged-state idempotency**: once `prev` matches the previous run, two compiles on the same code+HEAD are byte-identical (first run has empty `prev` — that one-field drift is expected) |
 | Baseline = git tracked | Only committed sources by default (`--include-untracked` to override) |
 | Commit anchors | HEAD stored in `compile_meta.compiled_at_commit`; previous anchor kept as `prev` for incremental updates |
 | Granularity | Function-level graph nodes; one page per class; module graphs show project-class edges only |
@@ -103,6 +103,7 @@ python tools/verify_moc.py --repo /path/to/qt-project --build /path/to/build
 - Non-empty set difference → print `moc_only_*` / `scan_only_*`, exit 1
 - Compare by **method name** (signatures differ across Qt versions); overloads collapse to one name
 - Does **not** replace `slots:` declaration scanning (invokeMethod / direct calls never appear in `connect`)
+- Complements source scan: missed inline / multi-line declarations are often caught by this oracle
 
 ## Layout
 
@@ -124,7 +125,9 @@ examples/demo-qt-app/         End-to-end demo (4 Q_OBJECT classes, .ui, PMF/lamb
 ## Scope
 
 - ✅ C++ / Qt Widgets (`.pro`, PMF `connect`, uic widget trees)
-- ✅ Sources in subdirectories (recursive scan; exclude thirdparty/build via config)
+- ✅ Sources in subdirectories (recursive scan)
+- Default excludes: `build`/`Temp`/`thirdparty`/`vendor`/`tests`/`test`/`examples`/`docs`/`scripts`, plus Windows reserved names (`nul`/`con`/`aux`…)
+- If product code lives under a default-excluded tree, re-include via `allow_dirs: ["examples"]`; extra excludes via `exclude_dirs` / `--exclude-dir`
 - ❌ Non-Qt projects; QML-first projects
 - Comment semantics depend on `.h` briefs — otherwise drive work from `missing-comments.md`
 

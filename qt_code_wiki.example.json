@@ -8,6 +8,7 @@
     "external",
     "libs/external"
   ],
+  "allow_dirs": [],
   "free_function_exclude_prefixes": [],
   "file_class_overrides": {},
   "modules_file": "modules.json",
